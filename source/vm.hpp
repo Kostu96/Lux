@@ -17,8 +17,9 @@ namespace Lux {
     class VM
     {
     public:
-        InterpretResult interpret(const Chunk& chunk);
+        InterpretResult interpret(const char *source);
     private:
+        InterpretResult run(const Chunk& chunk);
         void push(Value value);
         Value pop();
 

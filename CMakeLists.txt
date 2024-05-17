@@ -11,6 +11,8 @@ add_executable(lux
     ${CMAKE_CURRENT_SOURCE_DIR}/source/debug.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/debug.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/scanner.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/scanner.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/value.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/value.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/vm.cpp
