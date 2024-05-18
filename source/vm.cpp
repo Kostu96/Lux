@@ -1,36 +1,17 @@
 #include "vm.hpp"
 #include "chunk.hpp"
 #include "debug.hpp"
-#include "scanner.hpp"
-
-#define DEBUG_TRACE_EXECUTION
+#include "compiler.hpp"
 
 namespace Lux {
 
-    void compile(const char *source)
-    {
-        // TODO: this functions is temp
-        Scanner scanner{ source };
-        int line = -1;
-        while(true)
-        {
-            Token token = scanner.getToken();
-            if (token.line != line) {
-                std::printf("%4zu ", token.line);
-                line = token.line;
-            } else {
-                std::printf("   | ");
-            }
-            std::printf("%2d '%.*s'\n", token.type, static_cast<int>(token.length), token.start); 
-
-            if (token.type == Token::Type::EndOfFile) break;
-        }
-    }
-
     InterpretResult VM::interpret(const char *source)
     {
-        compile(source);
-        return InterpretResult::Success;
+        Compiler compiler;
+        Chunk chunk;
+        if (!compiler.compile(source, chunk)) return InterpretResult::CompilationError;
+
+        return run(chunk);
     }
 
     InterpretResult VM::run(const Chunk &chunk)

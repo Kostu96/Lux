@@ -94,6 +94,7 @@ namespace Lux {
         token.type = type;
         token.start = m_start;
         token.length = m_current - m_start;
+        token.line = m_line;
         return token;
     }
 

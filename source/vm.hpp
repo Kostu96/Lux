@@ -1,7 +1,7 @@
 #pragma once
+#include "common.hpp"
 #include "value.hpp"
 
-#include <cstdint>
 #include <vector>
 
 namespace Lux {
