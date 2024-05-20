@@ -42,6 +42,8 @@ namespace Lux {
         void parsePrecedence(Precedence precedence);
 
         static void number(Compiler &c);
+        static void literal(Compiler &c);
+        static void string(Compiler &c);
         static void grouping(Compiler &c);
         static void unary(Compiler &c);
         static void binary(Compiler &c);

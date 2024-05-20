@@ -9,11 +9,21 @@ namespace Lux {
     enum class OpCode : uint8_t {
         Constant,
         ConstantLong,
+        Nil,
+        True,
+        False,
         Negate,
         Add,
         Subtract,
         Multiply,
         Divide,
+        Not,
+        Equal,
+        NotEqual,
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
         Return
     };
 

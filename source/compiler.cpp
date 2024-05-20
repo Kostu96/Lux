@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 #include "chunk.hpp"
+#include "object.hpp"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.hpp"
@@ -74,8 +75,24 @@ namespace Lux {
 
     void Compiler::number(Compiler &c)
     {
-        double value = std::strtod(c.m_previous.start, nullptr);
-        c.emitConstant(value);
+        double number = std::strtod(c.m_previous.start, nullptr);
+        c.emitConstant(Value::makeNumber(number));
+    }
+
+    void Compiler::literal(Compiler &c)
+    {
+        switch (c.m_previous.type) {
+        case Token::Type::False: c.emitByte(static_cast<uint8_t>(OpCode::False)); break;
+        case Token::Type::Nil: c.emitByte(static_cast<uint8_t>(OpCode::Nil)); break;
+        case Token::Type::True: c.emitByte(static_cast<uint8_t>(OpCode::True)); break;
+        }
+    }
+
+    void Compiler::string(Compiler &c)
+    {
+        // TODO: memory leak
+        String *str = String::create(c.m_previous.start + 1, c.m_previous.length - 2);
+        c.emitConstant(Value::makeObject(str));
     }
 
     void Compiler::grouping(Compiler &c)
@@ -93,6 +110,7 @@ namespace Lux {
 
         switch (operatorType) {
         case Token::Type::Minus: c.emitByte(static_cast<uint8_t>(OpCode::Negate)); break;
+        case Token::Type::Bang: c.emitByte(static_cast<uint8_t>(OpCode::Not)); break;
         }
     }
 
@@ -103,10 +121,16 @@ namespace Lux {
         c.parsePrecedence(static_cast<Precedence>((static_cast<int>(rule.precedence) + 1)));
 
         switch (operatorType) {
-        case Token::Type::Plus:  c.emitByte(static_cast<uint8_t>(OpCode::Add)); break;
-        case Token::Type::Minus: c.emitByte(static_cast<uint8_t>(OpCode::Subtract)); break;
-        case Token::Type::Star:  c.emitByte(static_cast<uint8_t>(OpCode::Multiply)); break;
-        case Token::Type::Slash: c.emitByte(static_cast<uint8_t>(OpCode::Divide)); break;
+        case Token::Type::BangEqual:    c.emitByte(static_cast<uint8_t>(OpCode::NotEqual));     break;
+        case Token::Type::EqualEqual:   c.emitByte(static_cast<uint8_t>(OpCode::Equal));        break;
+        case Token::Type::Greater:      c.emitByte(static_cast<uint8_t>(OpCode::Greater));      break;
+        case Token::Type::GreaterEqual: c.emitByte(static_cast<uint8_t>(OpCode::GreaterEqual)); break;
+        case Token::Type::Less:         c.emitByte(static_cast<uint8_t>(OpCode::Less));         break;
+        case Token::Type::LessEqual:    c.emitByte(static_cast<uint8_t>(OpCode::LessEqual));    break;
+        case Token::Type::Plus:         c.emitByte(static_cast<uint8_t>(OpCode::Add));          break;
+        case Token::Type::Minus:        c.emitByte(static_cast<uint8_t>(OpCode::Subtract));     break;
+        case Token::Type::Star:         c.emitByte(static_cast<uint8_t>(OpCode::Multiply));     break;
+        case Token::Type::Slash:        c.emitByte(static_cast<uint8_t>(OpCode::Divide));       break;
         }
     }
 
@@ -142,46 +166,46 @@ namespace Lux {
     }
 
     Compiler::ParseRule Compiler::s_rules[] = {
-        { &grouping, nullptr, Precedence::None },   // LeftParen
-        { nullptr,  nullptr, Precedence::None },   // RightParen
-        { nullptr,  nullptr, Precedence::None },   // LeftBrace
-        { nullptr,  nullptr, Precedence::None },   // RightBrace
-        { nullptr,  nullptr, Precedence::None },   // Comma
-        { nullptr,  nullptr, Precedence::None },   // Dot
-        { &unary,   &binary,  Precedence::Term },   // Minus
-        { nullptr,  &binary,  Precedence::Term} ,   // Plus
-        { nullptr,  nullptr, Precedence::None },   // Semicolon
-        { nullptr,  &binary,  Precedence::Factor }, // Slash
-        { nullptr,  &binary,  Precedence::Factor }, // Star
-        { nullptr,  nullptr, Precedence::None },   // Bang
-        { nullptr,  nullptr, Precedence::None },   // BangEqual
-        { nullptr,  nullptr, Precedence::None },   // Equal
-        { nullptr,  nullptr, Precedence::None },   // EqualEqual
-        { nullptr,  nullptr, Precedence::None },   // Greater
-        { nullptr,  nullptr, Precedence::None },   // GreaterEqual
-        { nullptr,  nullptr, Precedence::None },   // Less
-        { nullptr,  nullptr, Precedence::None },   // LessEqual
-        { nullptr,  nullptr, Precedence::None },   // Identifier
-        { nullptr,  nullptr, Precedence::None },   // String
-        { &number,  nullptr, Precedence::None },   // Number
-        { nullptr,  nullptr, Precedence::None },   // And
-        { nullptr,  nullptr, Precedence::None },   // Class
-        { nullptr,  nullptr, Precedence::None },   // Else
-        { nullptr,  nullptr, Precedence::None },   // False
-        { nullptr,  nullptr, Precedence::None },   // For
-        { nullptr,  nullptr, Precedence::None },   // Fun
-        { nullptr,  nullptr, Precedence::None },   // If
-        { nullptr,  nullptr, Precedence::None },   // Nil
-        { nullptr,  nullptr, Precedence::None },   // Or
-        { nullptr,  nullptr, Precedence::None },   // Print
-        { nullptr,  nullptr, Precedence::None },   // Return
-        { nullptr,  nullptr, Precedence::None },   // Super
-        { nullptr,  nullptr, Precedence::None },   // This
-        { nullptr,  nullptr, Precedence::None },   // True
-        { nullptr,  nullptr, Precedence::None },   // Var
-        { nullptr,  nullptr, Precedence::None },   // While
-        { nullptr,  nullptr, Precedence::None },   // Error
-        { nullptr,  nullptr, Precedence::None }    // EndOfFile
+        { &grouping, nullptr, Precedence::None },       // LeftParen
+        { nullptr,   nullptr, Precedence::None },       // RightParen
+        { nullptr,   nullptr, Precedence::None },       // LeftBrace
+        { nullptr,   nullptr, Precedence::None },       // RightBrace
+        { nullptr,   nullptr, Precedence::None },       // Comma
+        { nullptr,   nullptr, Precedence::None },       // Dot
+        { &unary,    &binary, Precedence::Term },       // Minus
+        { nullptr,   &binary, Precedence::Term} ,       // Plus
+        { nullptr,   nullptr, Precedence::None },       // Semicolon
+        { nullptr,   &binary, Precedence::Factor },     // Slash
+        { nullptr,   &binary, Precedence::Factor },     // Star
+        { &unary,    nullptr, Precedence::None },       // Bang
+        { nullptr,   &binary, Precedence::Equality },   // BangEqual
+        { nullptr,   nullptr, Precedence::None },       // Equal
+        { nullptr,   &binary, Precedence::Equality },   // EqualEqual
+        { nullptr,   &binary, Precedence::Comparison }, // Greater
+        { nullptr,   &binary, Precedence::Comparison }, // GreaterEqual
+        { nullptr,   &binary, Precedence::Comparison }, // Less
+        { nullptr,   &binary, Precedence::Comparison }, // LessEqual
+        { nullptr,   nullptr, Precedence::None },       // Identifier
+        { &string,   nullptr, Precedence::None },       // String
+        { &number,   nullptr, Precedence::None },       // Number
+        { nullptr,   nullptr, Precedence::None },       // And
+        { nullptr,   nullptr, Precedence::None },       // Class
+        { nullptr,   nullptr, Precedence::None },       // Else
+        { &literal,  nullptr, Precedence::None },       // False
+        { nullptr,   nullptr, Precedence::None },       // For
+        { nullptr,   nullptr, Precedence::None },       // Fun
+        { nullptr,   nullptr, Precedence::None },       // If
+        { &literal,  nullptr, Precedence::None },       // Nil
+        { nullptr,   nullptr, Precedence::None },       // Or
+        { nullptr,   nullptr, Precedence::None },       // Print
+        { nullptr,   nullptr, Precedence::None },       // Return
+        { nullptr,   nullptr, Precedence::None },       // Super
+        { nullptr,   nullptr, Precedence::None },       // This
+        { &literal,  nullptr, Precedence::None },       // True
+        { nullptr,   nullptr, Precedence::None },       // Var
+        { nullptr,   nullptr, Precedence::None },       // While
+        { nullptr,   nullptr, Precedence::None },       // Error
+        { nullptr,   nullptr, Precedence::None }        // EndOfFile
     };
 
 } // namespace Lux
