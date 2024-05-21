@@ -1,4 +1,7 @@
 #pragma once
+#include "common.hpp"
+
+#include <xhash>
 
 namespace Lux {
 
@@ -25,7 +28,10 @@ namespace Lux {
         Type m_type;
     };
 
+    void printObject(Object *object);
+
     // TODO: implement Strings that doesn't own buffer
+    // TODO: remember that const string can be easly interned
     class String : public Object
     {
     public:
@@ -36,6 +42,7 @@ namespace Lux {
         static String *create(const char *str, size_t length) { return new String(str, length); }
 
         const char *cstr() const { return m_buffer; }
+        size_t hash() const { return m_hash; }
 
         bool operator==(const String &rhs) const;
         String& operator+=(const String &rhs);
@@ -44,9 +51,14 @@ namespace Lux {
         String &operator=(String &) = delete;
     private:
         size_t m_size = 0;
+        uint32_t m_hash;
         char *m_buffer = nullptr;
     };
 
-    void printObject(Object *object);
-
 } // namespace Lux
+
+template <>
+struct std::hash<Lux::String>
+{
+    size_t operator()(const Lux::String& str) const noexcept { return str.hash(); }
+};

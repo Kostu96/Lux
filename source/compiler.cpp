@@ -16,8 +16,7 @@ namespace Lux {
         m_panicMode = false;
 
         advance();
-        expression();
-        consume(Token::Type::EndOfFile, "Expect end of expression.");
+        while (!match(Token::Type::EndOfFile)) declaration();
         
         emitByte(static_cast<uint8_t>(OpCode::Return));
 
@@ -49,6 +48,59 @@ namespace Lux {
         }
 
         errorAtCurrent(message);
+    }
+
+    bool Compiler::match(Token::Type type)
+    {
+        if (m_current.type != type) return false;
+
+        advance();
+        return true;
+    }
+
+    void Compiler::declaration()
+    {
+        if (match(Token::Type::Var))
+            varDeclaration();
+        else
+            statement();
+
+        if (m_panicMode) synchronize();
+    }
+
+    void Compiler::varDeclaration()
+    {
+        // Parse variable name:
+        consume(Token::Type::Identifier, "Expect variable name.");
+        // TODO: memory leak
+        String *str = String::create(m_previous.start, m_previous.length);
+
+        match(Token::Type::Equal) ? expression() : emitByte(static_cast<uint8_t>(OpCode::Nil));
+        consume(Token::Type::Semicolon, "Expect ';' after variable declaration.");
+
+        emitGlobal(Value::makeObject(str));
+    }
+
+    void Compiler::statement()
+    {
+        if (match(Token::Type::Print))
+            printStatement();
+        else
+            expressionStatement();
+    }
+
+    void Compiler::printStatement()
+    {
+        expression();
+        consume(Token::Type::Semicolon, "Expect ';' after an expression.");
+        emitByte(static_cast<uint8_t>(OpCode::Print));
+    }
+
+    void Compiler::expressionStatement()
+    {
+        expression();
+        consume(Token::Type::Semicolon, "Expect ';' after an expression.");
+        emitByte(static_cast<uint8_t>(OpCode::Pop));
     }
 
     void Compiler::expression()
@@ -145,6 +197,11 @@ namespace Lux {
         currentChunk().writeConstant(constant, m_previous.line);
     }
 
+    void Compiler::emitGlobal(Value global)
+    {
+        currentChunk().writeGlobal(global, m_previous.line);
+    }
+
     void Compiler::errorAt(const Token &token, const char *message)
     {
         if (m_panicMode) return;
@@ -158,6 +215,28 @@ namespace Lux {
 
         std::printf(": %s\n", message);
         m_hadError = true;
+    }
+
+    void Compiler::synchronize()
+    {
+        m_panicMode = false;
+
+        while (m_current.type != Token::Type::EndOfFile) {
+            if (m_previous.type == Token::Type::Semicolon) return;
+            switch (m_current.type) {
+            case Token::Type::Class:
+            case Token::Type::Fun:
+            case Token::Type::Var:
+            case Token::Type::For:
+            case Token::Type::If:
+            case Token::Type::While:
+            case Token::Type::Print:
+            case Token::Type::Return:
+                return;
+            }
+
+            advance();
+        }
     }
 
     Compiler::ParseRule &Compiler::getRule(Token::Type type)

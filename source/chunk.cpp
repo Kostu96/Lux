@@ -30,6 +30,24 @@ namespace Lux {
         }
     }
 
+    void Chunk::writeGlobal(Value global, size_t line)
+    {
+        size_t globalIndex = addConstant(global);
+        if (globalIndex >= 256)
+        {
+            write((uint8_t)OpCode::DefGlobalLong, line);
+            write(globalIndex % 256, line);
+            globalIndex /= 256;
+            write(globalIndex % 256, line);
+            globalIndex /= 256;
+            write(globalIndex % 256, line);
+        }
+        else {
+            write((uint8_t)OpCode::DefGlobal, line);
+            write((uint8_t)globalIndex, line);
+        }
+    }
+
     size_t Chunk::getLine(size_t index) const
     {
         size_t lastIndex = 0;

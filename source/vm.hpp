@@ -3,6 +3,7 @@
 #include "value.hpp"
 
 #include <cstdarg>
+#include <unordered_map>
 #include <vector>
 
 namespace Lux {
@@ -20,7 +21,7 @@ namespace Lux {
     public:
         InterpretResult interpret(const char *source);
     private:
-        InterpretResult run(const Chunk& chunk);
+        InterpretResult run();
 
         static bool isFalsey(Value value);
 
@@ -33,6 +34,7 @@ namespace Lux {
         const Chunk *m_currentChunk = nullptr;
         const uint8_t *m_IP;
         std::vector<Value> m_stack;
+        std::unordered_map<String, Value> m_globals;
     };
 
 } // namespace Lux

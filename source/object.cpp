@@ -27,6 +27,25 @@ namespace Lux {
         return false;
     }
 
+    void printObject(Object *object)
+    {
+        switch (object->getType())
+        {
+        case Object::Type::String:
+            std::printf("%s", object->asString()->cstr());
+            break;
+        }
+    }
+
+    static uint32_t hashString(const char* key, size_t length) {
+        uint32_t hash = 2166136261u;
+        for (size_t i = 0; i < length; i++) {
+            hash ^= static_cast<uint8_t>(key[i]);
+            hash *= 16777619;
+        }
+        return hash;
+    }
+
     String::String(const char *str, size_t length) :
         Object{ Type::String }
     {
@@ -34,6 +53,7 @@ namespace Lux {
         m_buffer = new char[m_size];
         std::memcpy(m_buffer, str, length);
         m_buffer[length] = '\0';
+        m_hash = hashString(m_buffer, m_size);
     }
 
     String::~String()
@@ -43,7 +63,8 @@ namespace Lux {
 
     bool String::operator==(const String &rhs) const
     {
-        return m_size == rhs.m_size &&
+        return m_hash == rhs.m_hash &&
+               m_size == rhs.m_size &&
                std::memcmp(m_buffer, rhs.m_buffer, m_size) == 0;
     }
 
@@ -56,17 +77,8 @@ namespace Lux {
         delete[] m_buffer;
         m_size = newSize;
         m_buffer = newBuffer;
+        m_hash = hashString(m_buffer, m_size);
         return *this;
-    }
-
-    void printObject(Object *object)
-    {
-        switch (object->getType())
-        {
-        case Object::Type::String:
-            std::printf("%s", object->asString()->cstr());
-            break;
-        }
     }
 
 } // namespace Lux

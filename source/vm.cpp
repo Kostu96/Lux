@@ -11,14 +11,14 @@ namespace Lux {
         Chunk chunk;
         if (!compiler.compile(source, chunk)) return InterpretResult::CompilationError;
 
-        return run(chunk);
-    }
-
-    InterpretResult VM::run(const Chunk &chunk)
-    {
         m_currentChunk = &chunk;
         m_IP = m_currentChunk->getCodeRawPtr();
+        m_globals.clear();
+        return run();
+    }
 
+    InterpretResult VM::run()
+    {
 #define READ_BYTE() (*m_IP++)
 #define READ_CONSTANT() (m_currentChunk->getConstant(READ_BYTE()))
 // TODO: READ_CONSTANT_LONG
@@ -54,7 +54,16 @@ namespace Lux {
             OpCode opcode = (OpCode)READ_BYTE();
             switch (opcode)
             {
-            case OpCode::Constant: push(READ_CONSTANT());    break;
+            case OpCode::Constant: push(READ_CONSTANT()); break;
+            case OpCode::DefGlobal: {
+                String* name = READ_CONSTANT().object->asString();
+                if (m_globals.contains(*name)) {
+                    runtimeError("Global variable with such name already exists.");
+                    return InterpretResult::RuntimeError;
+                }
+                Value val = pop();
+                m_globals.emplace(std::make_pair(*name, val));
+            } break;
             case OpCode::Nil:      push(Value::makeNil());       break;
             case OpCode::True:     push(Value::makeBool(true));  break;
             case OpCode::False:    push(Value::makeBool(false)); break;
@@ -97,9 +106,12 @@ namespace Lux {
             case OpCode::GreaterEqual: BINARY_OP_B(>=); break;
             case OpCode::Less:         BINARY_OP_B(<);  break;
             case OpCode::LessEqual:    BINARY_OP_B(<=); break;
-            case OpCode::Return:
+            case OpCode::Print:
                 printValue(pop());
                 std::printf("\n");
+                break;
+            case OpCode::Pop: pop(); break;
+            case OpCode::Return:
                 return InterpretResult::Success;
             }
         }

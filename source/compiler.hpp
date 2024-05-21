@@ -38,9 +38,16 @@ namespace Lux {
 
         void advance();
         void consume(Token::Type type, const char* message);
+        bool match(Token::Type type);
+        
+        void declaration();
+        void varDeclaration();
+        void statement();
+        void printStatement();
+        void expressionStatement();
+
         void expression();
         void parsePrecedence(Precedence precedence);
-
         static void number(Compiler &c);
         static void literal(Compiler &c);
         static void string(Compiler &c);
@@ -51,10 +58,12 @@ namespace Lux {
         Chunk& currentChunk() { return *m_currentChunk; }
         void emitByte(uint8_t byte);
         void emitConstant(Value constant);
+        void emitGlobal(Value global);
 
         void errorAtCurrent(const char* message) { errorAt(m_current, message); }
         void error(const char* message) { errorAt(m_previous, message); }
         void errorAt(const Token &token, const char* message);
+        void synchronize();
 
         std::unique_ptr<Scanner> m_scanner{};
         Chunk *m_currentChunk = nullptr;

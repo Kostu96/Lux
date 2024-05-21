@@ -9,6 +9,8 @@ namespace Lux {
     enum class OpCode : uint8_t {
         Constant,
         ConstantLong,
+        DefGlobal,
+        DefGlobalLong,
         Nil,
         True,
         False,
@@ -24,6 +26,8 @@ namespace Lux {
         LessEqual,
         Greater,
         GreaterEqual,
+        Print,
+        Pop,
         Return
     };
 
@@ -32,6 +36,7 @@ namespace Lux {
     public:
         void write(uint8_t byte, size_t line);
         void writeConstant(Value constant, size_t line);
+        void writeGlobal(Value global, size_t line);
 
         const uint8_t* getCodeRawPtr() const { return m_code.data(); }
         size_t getCodeSize() const { return m_code.size(); }
