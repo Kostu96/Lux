@@ -36,6 +36,7 @@ namespace Lux {
             Precedence precedence;
         };
 
+        void reset(const char* source, Chunk& chunk);
         void advance();
         void consume(Token::Type type, const char* message);
         bool match(Token::Type type);
@@ -43,6 +44,7 @@ namespace Lux {
         void declaration();
         void varDeclaration();
         void statement();
+        void block();
         void printStatement();
         void expressionStatement();
 
@@ -62,6 +64,8 @@ namespace Lux {
         void emitDefGlobal(Value global);
         void emitGetGlobal(Value global);
         void emitSetGlobal(Value global);
+        void emitGetLocal(uint8_t index);
+        void emitSetLocal(uint8_t index);
 
         void errorAtCurrent(const char* message) { errorAt(m_current, message); }
         void error(const char* message) { errorAt(m_previous, message); }
@@ -74,6 +78,15 @@ namespace Lux {
         Token m_current;
         bool m_hadError;
         bool m_panicMode;
+
+        struct Local {
+            Token name;
+            int depth;
+        };
+
+        uint8_t m_scopeDepth;
+        uint8_t m_localCount;
+        Local m_locals[256];
 
         static ParseRule& getRule(Token::Type type);
         static ParseRule s_rules[];

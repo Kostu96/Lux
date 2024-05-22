@@ -4,6 +4,13 @@
 
 namespace Lux {
 
+    bool Token::operator==(const Token& rhs) const
+    {
+        return type == rhs.type &&
+               length == rhs.length &&
+               std::memcmp(start, rhs.start, length) == 0;
+    }
+
     Scanner::Scanner(const char *source) :
         m_start{ source },
         m_current{ source },

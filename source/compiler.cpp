@@ -10,10 +10,7 @@ namespace Lux {
 
     bool Compiler::compile(const char *source, Chunk &chunk)
     {
-        m_scanner = std::make_unique<Scanner>(source);
-        m_currentChunk = &chunk;
-        m_hadError = false;
-        m_panicMode = false;
+        reset(source, chunk);
 
         advance();
         while (!match(Token::Type::EndOfFile)) declaration();
@@ -25,6 +22,17 @@ namespace Lux {
 #endif
 
         return !m_hadError;
+    }
+
+    void Compiler::reset(const char* source, Chunk& chunk)
+    {
+        m_scanner = std::make_unique<Scanner>(source);
+        m_currentChunk = &chunk;
+        m_hadError = false;
+        m_panicMode = false;
+
+        m_scopeDepth = 0;
+        m_localCount = 0;
     }
 
     void Compiler::advance()
@@ -72,21 +80,70 @@ namespace Lux {
     {
         // Parse variable name:
         consume(Token::Type::Identifier, "Expect variable name.");
-        // TODO: memory leak
-        String *str = String::create(m_previous.start, m_previous.length);
+
+        String* str = nullptr;
+        if (m_scopeDepth == 0) { // Define global
+            // TODO: memory leak
+            str = String::create(m_previous.start, m_previous.length);
+        }
+        else { // Declare local
+            if (m_localCount == 256) {
+                error("Too many local variables in function.");
+                return;
+            }
+
+            for (int i = m_localCount - 1; i >= 0; i--) {
+                Local& local = m_locals[i];
+                if (local.depth != -1 && local.depth < m_scopeDepth) {
+                    break;
+                }
+
+                if (m_previous == local.name) {
+                    error("Variable with this name is alredy defined in this scope.");
+                }
+            }
+
+            m_locals[m_localCount].name = m_previous;
+            m_locals[m_localCount].depth = -1; // mark variable as not ready for use...
+            m_localCount++;
+        }
 
         match(Token::Type::Equal) ? expression() : emitByte(static_cast<uint8_t>(OpCode::Nil));
         consume(Token::Type::Semicolon, "Expect ';' after variable declaration.");
 
-        emitDefGlobal(Value::makeObject(str));
+        m_locals[m_localCount - 1].depth = m_scopeDepth; // ...and after initiazlization expression mark as ready
+
+        if (str) emitDefGlobal(Value::makeObject(str));
     }
 
     void Compiler::statement()
     {
         if (match(Token::Type::Print))
             printStatement();
+        else if (match(Token::Type::LeftBrace)) {
+            // begin scope
+            m_scopeDepth++;
+            
+            block();
+
+            // end scope
+            m_scopeDepth--;
+            while (m_localCount > 0 && m_locals[m_localCount - 1].depth > m_scopeDepth) {
+                emitByte(static_cast<uint8_t>(OpCode::Pop)); // TODO: add PopN to optimize when >1 pop
+                m_localCount--;
+            }
+        }
         else
             expressionStatement();
+    }
+
+    void Compiler::block()
+    {
+        while (m_current.type != Token::Type::RightBrace && m_current.type != Token::Type::EndOfFile) {
+            declaration();
+        }
+
+        consume(Token::Type::RightBrace, "Expect '}' after block.");
     }
 
     void Compiler::printStatement()
@@ -155,15 +212,30 @@ namespace Lux {
 
     void Compiler::variable(Compiler& c, bool canAssign)
     {
-        // TODO: memory leak
-        String* str = String::create(c.m_previous.start, c.m_previous.length);
+        int i;
+        bool isLocal = false;
+        for (i = c.m_localCount - 1; i >= 0; i--) {
+            if (c.m_locals[i].name == c.m_previous) {
+                if (c.m_locals[i].depth == -1) {
+                    c.error("Can't read local variable in its own initializer.");
+                }
+                isLocal = true;
+                break;
+            }
+        }
+
+        String* str = nullptr;
+        if (!isLocal) {
+            // TODO: memory leak
+            str = String::create(c.m_previous.start, c.m_previous.length);
+        }
 
         if (canAssign && c.match(Token::Type::Equal)) {
             c.expression();
-            c.emitSetGlobal(Value::makeObject(str));
+            str ? c.emitSetGlobal(Value::makeObject(str)) : c.emitSetLocal(i);
         } 
         else
-            c.emitGetGlobal(Value::makeObject(str));
+            str ? c.emitGetGlobal(Value::makeObject(str)) : c.emitGetLocal(i);
     }
 
     void Compiler::grouping(Compiler &c, bool canAssign)
@@ -229,6 +301,18 @@ namespace Lux {
     void Compiler::emitSetGlobal(Value global)
     {
         currentChunk().writeConstant(global, m_previous.line, OpCode::SetGlobal, OpCode::SetGlobalLong);
+    }
+
+    void Compiler::emitGetLocal(uint8_t index)
+    {
+        emitByte(static_cast<uint8_t>(OpCode::GetLocal));
+        emitByte(index);
+    }
+
+    void Compiler::emitSetLocal(uint8_t index)
+    {
+        emitByte(static_cast<uint8_t>(OpCode::SetLocal));
+        emitByte(index);
     }
 
     void Compiler::errorAt(const Token &token, const char *message)

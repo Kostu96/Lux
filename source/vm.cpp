@@ -85,6 +85,8 @@ namespace Lux {
                 entry.value = peek();
             } break;
             // TODO: SetGLobalLong
+            case OpCode::GetLocal: push(m_stack[READ_BYTE()]);    break;
+            case OpCode::SetLocal: m_stack[READ_BYTE()] = peek(); break;
             case OpCode::Nil:      push(Value::makeNil());       break;
             case OpCode::True:     push(Value::makeBool(true));  break;
             case OpCode::False:    push(Value::makeBool(false)); break;

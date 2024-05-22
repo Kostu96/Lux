@@ -15,6 +15,8 @@ namespace Lux {
         GetGlobalLong,
         SetGlobal,
         SetGlobalLong,
+        GetLocal,
+        SetLocal,
         Nil,
         True,
         False,

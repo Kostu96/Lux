@@ -9,6 +9,13 @@ namespace Lux {
         return offset + 1;
     }
 
+    static size_t byteInstruction(const char* name, const Chunk& chunk, size_t offset)
+    {
+        uint8_t index = chunk.getByte(offset + 1);
+        printf("%-16s %4d\n", name, index);
+        return offset + 2;
+    }
+
 #define PRINT_CONSTANT() do { \
     std::printf("%-16s %4d  '", name, constant); \
     printValue(chunk.getConstant(constant)); \
@@ -59,6 +66,8 @@ namespace Lux {
         case OpCode::GetGlobalLong: return constantLongInstruction("GET_GLOBAL_LONG", chunk, offset);
         case OpCode::SetGlobal: return constantInstruction("SET_GLOBAL", chunk, offset);
         case OpCode::SetGlobalLong: return constantLongInstruction("SET_GLOBAL_LONG", chunk, offset);
+        case OpCode::GetLocal: return byteInstruction("GET_LOCAL", chunk, offset);
+        case OpCode::SetLocal: return byteInstruction("SET_LOCAL", chunk, offset);
         case OpCode::Nil: return simpleInstruction("NIL", offset);
         case OpCode::True: return simpleInstruction("TRUE", offset);
         case OpCode::False: return simpleInstruction("FALSE", offset);

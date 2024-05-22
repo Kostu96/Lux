@@ -23,6 +23,8 @@ namespace Lux {
         const char *start;
         size_t length;
         size_t line;
+
+        bool operator==(const Token& rhs) const;
     };
 
     class Scanner
