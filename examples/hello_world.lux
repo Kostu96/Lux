@@ -1,5 +1,6 @@
 var string = "Hello " + "World!";
 print string;
 
-var a = 2 * (3 + 8 / 2);
+var a;
+a = 2 * (3 + 8 / 2);
 print a - 1.5;

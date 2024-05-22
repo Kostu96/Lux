@@ -1,9 +1,9 @@
 #pragma once
 #include "common.hpp"
-#include "value.hpp"
+#include "types/value.hpp"
+#include "types/hash_table.hpp"
 
 #include <cstdarg>
-#include <unordered_map>
 #include <vector>
 
 namespace Lux {
@@ -34,7 +34,7 @@ namespace Lux {
         const Chunk *m_currentChunk = nullptr;
         const uint8_t *m_IP;
         std::vector<Value> m_stack;
-        std::unordered_map<String, Value> m_globals;
+        HashTable m_globals;
     };
 
 } // namespace Lux

@@ -42,7 +42,7 @@ namespace Lux {
         while(true)
         {
 #ifdef DEBUG_TRACE_EXECUTION
-            std::printf("stack:    ");
+            std::printf("stack: ");
             for (auto slot : m_stack) {
                 std::printf("[");
                 printValue(slot);
@@ -55,15 +55,36 @@ namespace Lux {
             switch (opcode)
             {
             case OpCode::Constant: push(READ_CONSTANT()); break;
+            // TOOO: ConstantLong
             case OpCode::DefGlobal: {
                 String* name = READ_CONSTANT().object->asString();
                 if (m_globals.contains(*name)) {
                     runtimeError("Global variable with such name already exists.");
                     return InterpretResult::RuntimeError;
                 }
-                Value val = pop();
-                m_globals.emplace(std::make_pair(*name, val));
+                m_globals.insert(*name, pop());
             } break;
+            // TODO: DefGLobalLong
+            case OpCode::GetGlobal: {
+                String* name = READ_CONSTANT().object->asString();
+                auto& entry = m_globals.find(*name);
+                if (entry.key.isNull()) {
+                    runtimeError("Undefined variable '%s'.", name->cstr());
+                    return InterpretResult::RuntimeError;
+                }
+                push(entry.value);
+            } break;
+            // TODO: GetGLobalLong
+            case OpCode::SetGlobal: {
+                String* name = READ_CONSTANT().object->asString();
+                auto& entry = m_globals.find(*name);
+                if (entry.key.isNull()) {
+                    runtimeError("Undefined variable '%s'.", name->cstr());
+                    return InterpretResult::RuntimeError;
+                }
+                entry.value = peek();
+            } break;
+            // TODO: SetGLobalLong
             case OpCode::Nil:      push(Value::makeNil());       break;
             case OpCode::True:     push(Value::makeBool(true));  break;
             case OpCode::False:    push(Value::makeBool(false)); break;

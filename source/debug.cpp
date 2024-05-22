@@ -10,7 +10,7 @@ namespace Lux {
     }
 
 #define PRINT_CONSTANT() do { \
-    std::printf("%-14s %4d      '", name, constant); \
+    std::printf("%-16s %4d  '", name, constant); \
     printValue(chunk.getConstant(constant)); \
     std::printf("'\n"); \
 } while (false)
@@ -36,7 +36,7 @@ namespace Lux {
     void disassembleChunk(const Chunk& chunk, const char* name)
     {
         std::printf("== %s ==\n", name);
-        std::printf("byte line opcode            index  value\n");
+        std::printf("byte line opcode          index  value\n");
         for (size_t i = 0; i < chunk.getCodeSize(); i = disassembleInstruction(chunk, i));
     }
 
@@ -53,6 +53,12 @@ namespace Lux {
         {
         case OpCode::Constant: return constantInstruction("CONSTANT", chunk, offset);
         case OpCode::ConstantLong: return constantLongInstruction("CONSTANT_LONG", chunk, offset);
+        case OpCode::DefGlobal: return constantInstruction("DEF_GLOBAL", chunk, offset);
+        case OpCode::DefGlobalLong: return constantLongInstruction("DEF_GLOBAL_LONG", chunk, offset);
+        case OpCode::GetGlobal: return constantInstruction("GET_GLOBAL", chunk, offset);
+        case OpCode::GetGlobalLong: return constantLongInstruction("GET_GLOBAL_LONG", chunk, offset);
+        case OpCode::SetGlobal: return constantInstruction("SET_GLOBAL", chunk, offset);
+        case OpCode::SetGlobalLong: return constantLongInstruction("SET_GLOBAL_LONG", chunk, offset);
         case OpCode::Nil: return simpleInstruction("NIL", offset);
         case OpCode::True: return simpleInstruction("TRUE", offset);
         case OpCode::False: return simpleInstruction("FALSE", offset);

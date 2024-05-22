@@ -1,6 +1,6 @@
 #include "compiler.hpp"
 #include "chunk.hpp"
-#include "object.hpp"
+#include "types/string.hpp"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.hpp"
@@ -78,7 +78,7 @@ namespace Lux {
         match(Token::Type::Equal) ? expression() : emitByte(static_cast<uint8_t>(OpCode::Nil));
         consume(Token::Type::Semicolon, "Expect ';' after variable declaration.");
 
-        emitGlobal(Value::makeObject(str));
+        emitDefGlobal(Value::makeObject(str));
     }
 
     void Compiler::statement()
@@ -116,22 +116,28 @@ namespace Lux {
             error("Expect expression.");
             return;
         }
-        prefixRule(*this);
+
+        bool canAssign = precedence <= Precedence::Assignment;
+        prefixRule(*this, canAssign);
 
         while (precedence <= getRule(m_current.type).precedence) {
             advance();
             ParseRule::ParseFn infixRule = getRule(m_previous.type).infix;
-            infixRule(*this);
+            infixRule(*this, canAssign);
+        }
+
+        if (canAssign && match(Token::Type::Equal)) {
+            error("Invalid assignment target.");
         }
     }
 
-    void Compiler::number(Compiler &c)
+    void Compiler::number(Compiler &c, bool canAssign)
     {
         double number = std::strtod(c.m_previous.start, nullptr);
         c.emitConstant(Value::makeNumber(number));
     }
 
-    void Compiler::literal(Compiler &c)
+    void Compiler::literal(Compiler &c, bool canAssign)
     {
         switch (c.m_previous.type) {
         case Token::Type::False: c.emitByte(static_cast<uint8_t>(OpCode::False)); break;
@@ -140,20 +146,33 @@ namespace Lux {
         }
     }
 
-    void Compiler::string(Compiler &c)
+    void Compiler::string(Compiler &c, bool canAssign)
     {
         // TODO: memory leak
         String *str = String::create(c.m_previous.start + 1, c.m_previous.length - 2);
         c.emitConstant(Value::makeObject(str));
     }
 
-    void Compiler::grouping(Compiler &c)
+    void Compiler::variable(Compiler& c, bool canAssign)
+    {
+        // TODO: memory leak
+        String* str = String::create(c.m_previous.start, c.m_previous.length);
+
+        if (canAssign && c.match(Token::Type::Equal)) {
+            c.expression();
+            c.emitSetGlobal(Value::makeObject(str));
+        } 
+        else
+            c.emitGetGlobal(Value::makeObject(str));
+    }
+
+    void Compiler::grouping(Compiler &c, bool canAssign)
     {
         c.expression();
         c.consume(Token::Type::RightParen, "Expect ')' after expression.");
     }
 
-    void Compiler::unary(Compiler &c)
+    void Compiler::unary(Compiler &c, bool canAssign)
     {
         Token::Type operatorType = c.m_previous.type;
 
@@ -166,7 +185,7 @@ namespace Lux {
         }
     }
 
-    void Compiler::binary(Compiler &c)
+    void Compiler::binary(Compiler &c, bool canAssign)
     {
         Token::Type operatorType = c.m_previous.type;
         ParseRule& rule = getRule(operatorType);
@@ -194,12 +213,22 @@ namespace Lux {
 
     void Compiler::emitConstant(Value constant)
     {
-        currentChunk().writeConstant(constant, m_previous.line);
+        currentChunk().writeConstant(constant, m_previous.line, OpCode::Constant, OpCode::ConstantLong);
     }
 
-    void Compiler::emitGlobal(Value global)
+    void Compiler::emitDefGlobal(Value global)
     {
-        currentChunk().writeGlobal(global, m_previous.line);
+        currentChunk().writeConstant(global, m_previous.line, OpCode::DefGlobal, OpCode::DefGlobalLong);
+    }
+
+    void Compiler::emitGetGlobal(Value global)
+    {
+        currentChunk().writeConstant(global, m_previous.line, OpCode::GetGlobal, OpCode::GetGlobalLong);
+    }
+
+    void Compiler::emitSetGlobal(Value global)
+    {
+        currentChunk().writeConstant(global, m_previous.line, OpCode::SetGlobal, OpCode::SetGlobalLong);
     }
 
     void Compiler::errorAt(const Token &token, const char *message)
@@ -264,7 +293,7 @@ namespace Lux {
         { nullptr,   &binary, Precedence::Comparison }, // GreaterEqual
         { nullptr,   &binary, Precedence::Comparison }, // Less
         { nullptr,   &binary, Precedence::Comparison }, // LessEqual
-        { nullptr,   nullptr, Precedence::None },       // Identifier
+        { &variable, nullptr, Precedence::None },       // Identifier
         { &string,   nullptr, Precedence::None },       // String
         { &number,   nullptr, Precedence::None },       // Number
         { nullptr,   nullptr, Precedence::None },       // And

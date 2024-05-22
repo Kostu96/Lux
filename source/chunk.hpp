@@ -1,5 +1,5 @@
 #pragma once
-#include "value.hpp"
+#include "types/value.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -11,6 +11,10 @@ namespace Lux {
         ConstantLong,
         DefGlobal,
         DefGlobalLong,
+        GetGlobal,
+        GetGlobalLong,
+        SetGlobal,
+        SetGlobalLong,
         Nil,
         True,
         False,
@@ -35,8 +39,7 @@ namespace Lux {
     {
     public:
         void write(uint8_t byte, size_t line);
-        void writeConstant(Value constant, size_t line);
-        void writeGlobal(Value global, size_t line);
+        void writeConstant(Value constant, size_t line, OpCode opcode, OpCode opcodeLong);
 
         const uint8_t* getCodeRawPtr() const { return m_code.data(); }
         size_t getCodeSize() const { return m_code.size(); }

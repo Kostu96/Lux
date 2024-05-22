@@ -12,12 +12,12 @@ namespace Lux {
             m_lines.emplace_back(line, 1);
     }
 
-    void Chunk::writeConstant(Value constant, size_t line)
+    void Chunk::writeConstant(Value constant, size_t line, OpCode opcode, OpCode opcodeLong)
     {
         size_t constantIndex = addConstant(constant);
         if (constantIndex >= 256)
         {
-            write((uint8_t)OpCode::ConstantLong, line);
+            write((uint8_t)opcodeLong, line);
             write(constantIndex % 256, line);
             constantIndex /= 256;
             write(constantIndex % 256, line);
@@ -25,26 +25,8 @@ namespace Lux {
             write(constantIndex % 256, line);
         }
         else {
-            write((uint8_t)OpCode::Constant, line);
+            write((uint8_t)opcode, line);
             write((uint8_t)constantIndex, line);
-        }
-    }
-
-    void Chunk::writeGlobal(Value global, size_t line)
-    {
-        size_t globalIndex = addConstant(global);
-        if (globalIndex >= 256)
-        {
-            write((uint8_t)OpCode::DefGlobalLong, line);
-            write(globalIndex % 256, line);
-            globalIndex /= 256;
-            write(globalIndex % 256, line);
-            globalIndex /= 256;
-            write(globalIndex % 256, line);
-        }
-        else {
-            write((uint8_t)OpCode::DefGlobal, line);
-            write((uint8_t)globalIndex, line);
         }
     }
 

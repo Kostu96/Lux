@@ -1,7 +1,7 @@
 #pragma once
 #include "common.hpp"
 #include "scanner.hpp"
-#include "value.hpp"
+#include "types/value.hpp"
 
 #include <memory>
 
@@ -29,7 +29,7 @@ namespace Lux {
         };
 
         struct ParseRule {
-            using ParseFn = void(*)(Compiler &);
+            using ParseFn = void(*)(Compiler &, bool);
 
             ParseFn prefix;
             ParseFn infix;
@@ -48,17 +48,20 @@ namespace Lux {
 
         void expression();
         void parsePrecedence(Precedence precedence);
-        static void number(Compiler &c);
-        static void literal(Compiler &c);
-        static void string(Compiler &c);
-        static void grouping(Compiler &c);
-        static void unary(Compiler &c);
-        static void binary(Compiler &c);
+        static void number(Compiler &c, bool canAssign);
+        static void literal(Compiler &c, bool canAssign);
+        static void string(Compiler &c, bool canAssign);
+        static void variable(Compiler& c, bool canAssign);
+        static void grouping(Compiler &c, bool canAssign);
+        static void unary(Compiler &c, bool canAssign);
+        static void binary(Compiler &c, bool canAssign);
 
         Chunk& currentChunk() { return *m_currentChunk; }
         void emitByte(uint8_t byte);
         void emitConstant(Value constant);
-        void emitGlobal(Value global);
+        void emitDefGlobal(Value global);
+        void emitGetGlobal(Value global);
+        void emitSetGlobal(Value global);
 
         void errorAtCurrent(const char* message) { errorAt(m_current, message); }
         void error(const char* message) { errorAt(m_previous, message); }
