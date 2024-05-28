@@ -14,7 +14,7 @@ namespace Lux {
     Scanner::Scanner(const char *source) :
         m_start{ source },
         m_current{ source },
-        m_line{ 1 } {}
+        m_line{ 1 }, m_col{ 1 } {}
 
     Token Scanner::getToken()
     {
@@ -49,13 +49,20 @@ namespace Lux {
 
     char Scanner::advance()
     { 
+        m_col++;
         return *m_current++;
+    }
+
+    void Scanner::newLine()
+    {
+        m_col = 1;
+        m_line++;
     }
 
     bool Scanner::match(char expected)
     {
         if (*m_current == '\0' || *m_current != expected) return false;
-        m_current++;
+        advance();
         return true;
     }
 
@@ -70,15 +77,15 @@ namespace Lux {
             switch (*m_current)
             {
             case '\n':
-                m_line++;
+                newLine();
             case ' ':
             case '\r':
             case '\t':
-                m_current++;
+                advance();
                 break;
             case '/':
-                if (peekNext() == '/') while (*m_current != '\n' && *m_current != '\0') m_current++;
-                else return;
+                if (peekNext() == '/')
+                    while (*m_current != '\n' && *m_current != '\0') advance();
                 break;
             default:
                 return;
@@ -102,6 +109,7 @@ namespace Lux {
         token.start = m_start;
         token.length = m_current - m_start;
         token.line = m_line;
+        token.col = m_col;
         return token;
     }
 
@@ -118,7 +126,7 @@ namespace Lux {
     {
         while (*m_current != '"' && *m_current != '\0')
         {
-            if (*m_current == '\n') m_line++;
+            if (*m_current == '\n') newLine();
             advance();
         }
 
@@ -132,12 +140,12 @@ namespace Lux {
 
     Token Scanner::number()
     {
-        while (isDigit(*m_current)) m_current++;
+        while (isDigit(*m_current)) advance();
 
         if (*m_current == '.' && isDigit(peekNext())) {
-            m_current++;
+            advance();
 
-            while (isDigit(*m_current)) m_current++;
+            while (isDigit(*m_current)) advance();
         }
 
         return makeToken(Token::Type::Number);
@@ -145,7 +153,7 @@ namespace Lux {
 
     Token Scanner::identifier()
     {
-        while (isAlpha(*m_current) || isDigit(*m_current)) m_current++;
+        while (isAlpha(*m_current) || isDigit(*m_current)) advance();
         return makeToken(identifierType());
     }
 

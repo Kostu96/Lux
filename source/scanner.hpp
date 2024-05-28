@@ -23,6 +23,7 @@ namespace Lux {
         const char *start;
         size_t length;
         size_t line;
+        size_t col;
 
         bool operator==(const Token& rhs) const;
     };
@@ -35,6 +36,7 @@ namespace Lux {
         Token getToken();
     private:
         char advance();
+        void newLine();
         bool match(char expected);
         char peekNext();
         void skipWhitespace();
@@ -51,6 +53,7 @@ namespace Lux {
         const char* m_start;
         const char* m_current;
         size_t m_line;
+        size_t m_col;
     };
 
 } // namespace Lux

@@ -319,14 +319,14 @@ namespace Lux {
     {
         if (m_panicMode) return;
         m_panicMode = true;
-        std::printf("[line %zu] Error", token.line);
+        std::fprintf(stderr, "[line %zu | col %zu] Error", token.line, token.col);
 
         if (token.type == Token::Type::EndOfFile)
-            std::printf(" at end");
+            std::fprintf(stderr, " at end");
         else if (token.type != Token::Type::Error)
-            std::printf(" at '%.*s'", (int)token.length, token.start);
+            std::fprintf(stderr, " at '%.*s'", (int)token.length, token.start);
 
-        std::printf(": %s\n", message);
+        std::fprintf(stderr, ": %s\n", message);
         m_hadError = true;
     }
 

@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-bool readFile(const char* filename, char* data, size_t& size, bool binary = false)
+static bool readFile(const char* filename, char* data, size_t& size, bool binary = false)
 {
     std::ifstream fin(filename, binary ? std::ios::binary : std::ios::in);
     if (!fin.is_open())
